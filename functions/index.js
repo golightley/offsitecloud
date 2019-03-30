@@ -87,7 +87,7 @@ exports.createFeedbackRequest = functions.https.onRequest((request, response) =>
     var docData = {
         active: true,
         userId: userId,
-        category:category,
+        categories:category,
         surveyType:"feedback",
         arrayExample: teamArray,
         displayName:displayName
@@ -99,30 +99,44 @@ exports.createFeedbackRequest = functions.https.onRequest((request, response) =>
         console.log("Document written with ID: ", docRef.id);
         const surveyID = docRef.id;
 
+
+    // create notificaitons for each category selected 
     // create notifications for each team member selected
-    teamArray.forEach(element => {
-        console.log("Creating notification for: ", element)
+    // categories.forEach(category => {
+        // console.log("Creating notification for: ", category)
         //make sure the user selected the name 
-        if (element.checked == true){
-            // don't send notification for yourself
-            // if(element.userId!=userId){
-            var notificationData = {
-                active: true,
-                user: element.userId,
-                survey: surveyID,
-                name: displayName + "requested feedback on " +category,
-            };
-            admin.firestore().collection("surveynotifications").add(notificationData)
-            .then(function(docRef) {
-                console.log("Notification written with ID: ", docRef.id);
-                const surveyID = docRef.id; 
-            })
-            .catch(function(error) {
-                console.error("Error adding document: ", error);
+        // if (category.checked == true){
+            // create notifications for each team member selected
+            teamArray.forEach(element => {
+                console.log("Creating notification for: ", element)
+                //make sure the user selected the name 
+                if (element.checked == true){
+                    // don't send notification for yourself
+                    // if(element.userId!=userId){
+                    var notificationData = {
+                        active: true,
+                        user: element.userId,
+                        survey: surveyID,
+                        name: displayName + " requested feedback on " + category,
+                    };
+                    admin.firestore().collection("surveynotifications").add(notificationData)
+                    .then(function(docRef) {
+                        console.log("Notification written with ID: ", docRef.id);
+                        const surveyID = docRef.id; 
+                    })
+                    .catch(function(error) {
+                        console.error("Error adding document: ", error);
+                    });
+                // }
+            }
             });
-        // }
-    }
-    });
+    // }
+    // });
+
+
+
+
+
 
     // pick questions to include in the survey 
 
