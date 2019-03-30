@@ -70,14 +70,19 @@ exports.createFeedbackRequest = functions.https.onRequest((request, response) =>
 
     // get all of the variables we need
     // variables needed: array of team members, category, userID
-    const teamArray  = JSON.parse(request.body).team;
-    const userId     = JSON.parse(request.body).userId;
-    const category   = JSON.parse(request.body).category;
+    const teamArray     = JSON.parse(request.body).team;
+    const userId        = JSON.parse(request.body).userId;
+    const category      = JSON.parse(request.body).category;
+    const displayName   = JSON.parse(request.body).displayName;
+
+
 
     console.log(request.body);
     console.log(teamArray);
     console.log(userId);
     console.log(category);
+
+
 
     var docData = {
         active: true,
@@ -85,6 +90,7 @@ exports.createFeedbackRequest = functions.https.onRequest((request, response) =>
         category:category,
         surveyType:"feedback",
         arrayExample: teamArray,
+        displayName:displayName
     };
 
     // create a new survey for the feedback request 
@@ -98,11 +104,13 @@ exports.createFeedbackRequest = functions.https.onRequest((request, response) =>
         console.log("Creating notification for: ", element)
         //make sure the user selected the name 
         if (element.checked == true){
+            // don't send notification for yourself
+            // if(element.userId!=userId){
             var notificationData = {
                 active: true,
                 user: element.userId,
                 survey: surveyID,
-                name: "Cynthia requested feedback",
+                name: displayName + "requested feedback on " +category,
             };
             admin.firestore().collection("surveynotifications").add(notificationData)
             .then(function(docRef) {
@@ -112,7 +120,8 @@ exports.createFeedbackRequest = functions.https.onRequest((request, response) =>
             .catch(function(error) {
                 console.error("Error adding document: ", error);
             });
-        }
+        // }
+    }
     });
 
     // pick questions to include in the survey 
@@ -236,6 +245,8 @@ exports.addQuestionToSurvey = functions.firestore
     // get the categroy
     let category = data.category;
 
+    let user = data.userId;
+
 
     console.log("Survey document created")
     console.log(data);
@@ -265,6 +276,7 @@ exports.addQuestionToSurvey = functions.firestore
                 active: true,
                 surveys: [surveyId],
                 type:element.type,
+                users:[user],
                 Question: element.question,
             };
             admin.firestore().collection("questions").add(questionData)
