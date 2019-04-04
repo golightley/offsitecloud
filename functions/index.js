@@ -8,9 +8,41 @@ admin.initializeApp(functions.config().firebase);
 // // Create and Deploy Your First Cloud Functions
 // // https://firebase.google.com/docs/functions/write-firebase-functions
 //
+
+
+const sendNotication = (owner_uid, type) => {
+
+    return new Promise((resolve,reject)=>{
+            // get token from users collection 
+        admin.firestore().collection("users").doc(owner_uid).get().then((doc)=>{
+            if(doc.exists && doc.data().token){
+                // will need to add different types
+                if(type == true){
+                    admin.messaging().sendToDevice(doc.data().token, {
+                        data:{
+                            title: "New notification",
+                            sound: "default",
+                            body:"Tap to check"
+                        }
+                    }).then((sent)=>{
+                        resolve(sent)
+                    }).catch((error)=>{
+                        reject(error)
+                    })
+                }
+
+            }
+        })
+
+    })
+
+
+}
+
 exports.helloWorld = functions.https.onRequest((request, response) => {
  response.send("Hello from Firebase!");
 });
+
 
 
 exports.updateLikesCount = functions.https.onRequest((request, response) => {
@@ -123,6 +155,7 @@ exports.createFeedbackRequest = functions.https.onRequest((request, response) =>
                     .then(function(docRef) {
                         console.log("Notification written with ID: ", docRef.id);
                         const surveyID = docRef.id; 
+                        sendNotication(element.userId,"Notification");
                     })
                     .catch(function(error) {
                         console.error("Error adding document: ", error);
