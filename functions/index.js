@@ -5,19 +5,124 @@ const admin = require('firebase-admin');
 // admin.initializeApp();
 admin.initializeApp(functions.config().firebase);
 
+// configure sendgrid
+const SENDGRID_API_KEY = functions.config().sendgrid.key
+const sgMail           = require('@sendgrid/mail');
+sgMail.setApiKey(SENDGRID_API_KEY);
+
 // // Create and Deploy Your First Cloud Functions
 // // https://firebase.google.com/docs/functions/write-firebase-functions
 //
 
 
+// send invite email with sendgrid 
+exports.firestoreEmail = functions.firestore
+    .document('emailInvites/{emailInvitesId}')
+    .onCreate((snap, context) => {
+        // Get an object representing the document
+        // e.g. {'name': 'Marie', 'age': 66}
+        const newValue = snap.data();
+  
+        // access a particular field as you would any JS property
+        const name  =  newValue.name;
+        const email =  newValue.email;
+        console.log("sending to "+name+ " at "+email)
+
+        // create email template in format required by sendGrid
+        // const msg = {
+        //     to: 'golightley@gmail.com',
+        //     from: 'hello@angularfirebase.com',
+        //     subject:  'New Follower',
+        //     // text: `Hey ${toName}. You have a new follower!!! `,
+        //     // html: `<strong>Hey ${toName}. You have a new follower!!!</strong>`,
+
+        //     // custom templates
+        //     templateId: 'd-db4ed9fdd91142299b70d02a0cc1477a',
+        //     substitutionWrappers: ['{{', '}}'],
+        //     substitutions: {
+        //       name: name
+        //       // and other custom properties here
+        //     }
+        // };
+
+        const msg = {
+            to: email,
+            from: 'test@offsite.com',
+            subject: 'You have been invited by a co-worker to join Offsite',
+            // text: 'and easy to do anywhere, even with Node.js',
+            // html: '<strong>and easy to do anywhere, even with Node.js</strong>',
+            templateId: 'd-5bcdc869970a4a269fb044c40341edac',
+            dynamic_template_data: {
+                name: newValue.name,
+                subject:'You have been invited by a co-worker to join Offsite'
+                // and other custom properties here
+                }
+          };
+          
+         // send data to send grid
+         return sgMail.send(msg)
+                .then(() => console.log(' mail sent success'))
+                .catch(err => console.log(err))
+                console.log("Email sent")
+      });
+
+
+
+    // .onCreate(event => {
+    //     console.log("Event");
+    //     console.log(event);
+
+        
+    //     const emailInviteId = event.params.emailInvitesId;
+    //     const db            = admin.firestore()
+
+
+    //     return db.collection('emailInvites').doc(emailInviteId)
+    //     .get()
+    //     .then(doc => {
+
+    //         const email = doc.data()
+
+    //         const msg = {
+    //             to: email.email,
+    //             from: 'hello@angularfirebase.com',
+    //             subject: 'New Invite',
+    //             templateId:'d-db4ed9fdd91142299b70d02a0cc1477a',
+    //             substitutionWrappers: ['{{','}}'],
+    //             substitutions:{
+    //                 name: email.displayName
+    //             }
+
+    //         };
+            
+    //         return sgMail.send(msg);
+
+    //     })
+    //     .then(() => console.log('email sent!'))
+    //     .catch(err => console.log(err))
+
+    // })
+
+// exports.helloWorld = functions.https.onRequest((request, response) => {
+//     response.send("Hello from Firebase!");
+//    });
+   
+
+
+
 const sendNotication = (owner_uid, type) => {
+
+    // print out the info to make sure it is right 
+    console.log("Inside the cloud messaging, send notification function")
+    console.log(owner_uid)
+    console.log(type)
 
     return new Promise((resolve,reject)=>{
             // get token from users collection 
         admin.firestore().collection("users").doc(owner_uid).get().then((doc)=>{
             if(doc.exists && doc.data().token){
                 // will need to add different types
-                if(type == true){
+                // if(type == true){
                     admin.messaging().sendToDevice(doc.data().token, {
                         data:{
                             title: "New notification",
@@ -25,11 +130,16 @@ const sendNotication = (owner_uid, type) => {
                             body:"Tap to check"
                         }
                     }).then((sent)=>{
+                        console.log("ready to resolve")
+                        console.log(sent)
+
                         resolve(sent)
                     }).catch((error)=>{
+                        console.log("error resolving cloud messaging")
+                        console.log(error)
                         reject(error)
                     })
-                }
+                // }
 
             }
         })
