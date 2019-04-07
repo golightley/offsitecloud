@@ -24,8 +24,11 @@ exports.firestoreEmail = functions.firestore
         const newValue = snap.data();
   
         // access a particular field as you would any JS property
-        const name  =  newValue.name;
-        const email =  newValue.email;
+        const name      =  newValue.name;
+        const email     =  newValue.email;
+        const team      =  newValue.team;
+        const teamName  =  newValue.teamName;
+
         console.log("sending to "+name+ " at "+email)
 
         // create email template in format required by sendGrid
@@ -54,7 +57,10 @@ exports.firestoreEmail = functions.firestore
             templateId: 'd-5bcdc869970a4a269fb044c40341edac',
             dynamic_template_data: {
                 name: newValue.name,
-                subject:'You have been invited by a co-worker to join Offsite'
+                subject:'You have been invited by a co-worker to join Offsite',
+                // team:[{"name":"liam"},{"name":"cynthia"}]
+                team:newValue.team,
+                teamName:teamName
                 // and other custom properties here
                 }
           };
