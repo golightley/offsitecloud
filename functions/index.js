@@ -28,6 +28,7 @@ exports.firestoreEmail = functions.firestore
         const email     =  newValue.email;
         const team      =  newValue.team;
         const teamName  =  newValue.teamName;
+        const teamID    =  newValue.teamId;
 
         console.log("sending to "+name+ " at "+email + "with id"+snap.id)
 
@@ -44,7 +45,7 @@ exports.firestoreEmail = functions.firestore
                 // team:[{"name":"liam"},{"name":"cynthia"}]
                 team:newValue.team,
                 teamName:teamName,
-                teamId:snap.id,  
+                teamId:teamID, 
                 // and other custom properties here
                 }
           };
