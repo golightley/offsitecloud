@@ -29,24 +29,7 @@ exports.firestoreEmail = functions.firestore
         const team      =  newValue.team;
         const teamName  =  newValue.teamName;
 
-        console.log("sending to "+name+ " at "+email)
-
-        // create email template in format required by sendGrid
-        // const msg = {
-        //     to: 'golightley@gmail.com',
-        //     from: 'hello@angularfirebase.com',
-        //     subject:  'New Follower',
-        //     // text: `Hey ${toName}. You have a new follower!!! `,
-        //     // html: `<strong>Hey ${toName}. You have a new follower!!!</strong>`,
-
-        //     // custom templates
-        //     templateId: 'd-db4ed9fdd91142299b70d02a0cc1477a',
-        //     substitutionWrappers: ['{{', '}}'],
-        //     substitutions: {
-        //       name: name
-        //       // and other custom properties here
-        //     }
-        // };
+        console.log("sending to "+name+ " at "+email + "with id"+snap.id)
 
         const msg = {
             to: email,
@@ -60,7 +43,8 @@ exports.firestoreEmail = functions.firestore
                 subject:'You have been invited by a co-worker to join Offsite',
                 // team:[{"name":"liam"},{"name":"cynthia"}]
                 team:newValue.team,
-                teamName:teamName
+                teamName:teamName,
+                teamId:snap.id,  
                 // and other custom properties here
                 }
           };
