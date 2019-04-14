@@ -114,8 +114,8 @@ exports.createPulseChecks = functions.https.onRequest((request, response) => {
 
             // create new surveys for each team
             newsurvey(team);
- 
             // create new question
+
             // create notifications for each team member
             // }
         })
@@ -143,8 +143,8 @@ function newsurvey(team){
     .then(function(docRef) {
         console.log("Survey Document written with ID: ", docRef.id);
         const surveyID = docRef.id;  
-        newNotification(team,docRef.id);
-
+            newNotification(team,docRef.id);
+            newQuestions(team,docRef.id)
         }).catch(function(error) {
           console.error('Error creating sruvey document: ', error);
         });
@@ -182,75 +182,52 @@ function newNotification(team, surveyId){
             });
 
     })
-
-
-
-
 }
 
+function newQuestions(team, surveyId){
 
+    // create an array of members in the team
+    let teamMembersArray = [];
 
+    team.data().members.forEach(member =>{
+        teamMembersArray.push(member);
 
+    });
+    console.log(teamMembersArray);
 
-    
-    //     var docData = {
-    //         active: true,
-    //         userId: userId,
-    //         categories:category,
-    //         surveyType:"feedback",
-    //         arrayExample: teamArray,
-    //         displayName:displayName
-    //     };
-    
-    //     // create a new survey for the feedback request 
-    //     admin.firestore().collection("surveys").add(docData)
-    //     .then(function(docRef) {
-    //         console.log("Document written with ID: ", docRef.id);
-    //         const surveyID = docRef.id;
-    
-    
-    //     // create notificaitons for each category selected 
-    //     // create notifications for each team member selected
-    //     // categories.forEach(category => {
-    //         // console.log("Creating notification for: ", category)
-    //         //make sure the user selected the name 
-    //         // if (category.checked == true){
-    //             // create notifications for each team member selected
-    //             teamArray.forEach(element => {
-    //                 console.log("Creating notification for: ", element)
-    //                 //make sure the user selected the name 
-    //                 if (element.checked == true){
-    //                     // don't send notification for yourself
-    //                     // if(element.userId!=userId){
-    //                     var notificationData = {
-    //                         active: true,
-    //                         user: element.userId,
-    //                         survey: surveyID,
-    //                         name: displayName + " requested feedback on " + category,
-    //                     };
-    //                     admin.firestore().collection("surveynotifications").add(notificationData)
-    //                     .then(function(docRef) {
-    //                         console.log("Notification written with ID: ", docRef.id);
-    //                         const surveyID = docRef.id; 
-    //                         sendNotication(element.userId,"Notification");
-    //                     })
-    //                     .catch(function(error) {
-    //                         console.error("Error adding document: ", error);
-    //                     });
-    //                 // }
-    //             }
-    //             });
-    //     })
-    //     .catch(function(error) {
-    //         console.error("Error adding document: ", error);
-    //     });
-        
-    // })
-
-
-
-   
-
+    console.log("Ready to create new questions for this team...");
+            // // create a new survey for the feedback request 
+        admin.firestore().collection('questionTemplate').where('category', '==', "Pulse check").get()
+        .then(function(questionTemplate) {
+            questionTemplate.forEach((templates) => {
+                let questions = [];
+                questions = templates.data().Questions;
+                questions.forEach(question => {
+                    let questionText = "";
+                    if(question.type == "input"){
+                        questionText = "What are examples of "+ name + "'s " + question.question;
+                    }else{
+                        questionText = question.question;
+                    }
+                  console.log(question)
+                  admin.firestore().collection('questions').add({
+                    active:true,
+                    Question: questionText,
+                    type: question.type,
+                    users:teamMembersArray,
+                    surveys:[surveyId],
+                    timestamp: admin.firestore.FieldValue.serverTimestamp()
+                }).then(function(docRef) {
+                    console.log('Survey question written with ID: ', docRef.id);
+                  }).catch(function(error) {
+                    console.error('Error adding document: ', error);
+                  });
+                });
+            })
+        }).catch(function(error) {
+            console.error('Error creating sruvey document: ', error);
+            });
+}
 
 
 exports.updateLikesCount = functions.https.onRequest((request, response) => {
