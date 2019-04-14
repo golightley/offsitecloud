@@ -216,6 +216,7 @@ function newQuestions(team, surveyId){
                     type: question.type,
                     users:teamMembersArray,
                     surveys:[surveyId],
+                    goal:"pulse",
                     timestamp: admin.firestore.FieldValue.serverTimestamp()
                 }).then(function(docRef) {
                     console.log('Survey question written with ID: ', docRef.id);
