@@ -58,49 +58,6 @@ exports.firestoreEmail = functions.firestore
       });
 
 
-
-    // .onCreate(event => {
-    //     console.log("Event");
-    //     console.log(event);
-
-        
-    //     const emailInviteId = event.params.emailInvitesId;
-    //     const db            = admin.firestore()
-
-
-    //     return db.collection('emailInvites').doc(emailInviteId)
-    //     .get()
-    //     .then(doc => {
-
-    //         const email = doc.data()
-
-    //         const msg = {
-    //             to: email.email,
-    //             from: 'hello@angularfirebase.com',
-    //             subject: 'New Invite',
-    //             templateId:'d-db4ed9fdd91142299b70d02a0cc1477a',
-    //             substitutionWrappers: ['{{','}}'],
-    //             substitutions:{
-    //                 name: email.displayName
-    //             }
-
-    //         };
-            
-    //         return sgMail.send(msg);
-
-    //     })
-    //     .then(() => console.log('email sent!'))
-    //     .catch(err => console.log(err))
-
-    // })
-
-// exports.helloWorld = functions.https.onRequest((request, response) => {
-//     response.send("Hello from Firebase!");
-//    });
-   
-
-
-
 const sendNotication = (owner_uid, type) => {
 
     // print out the info to make sure it is right 
@@ -143,6 +100,156 @@ const sendNotication = (owner_uid, type) => {
 exports.helloWorld = functions.https.onRequest((request, response) => {
  response.send("Hello from Firebase!");
 });
+
+exports.createPulseChecks = functions.https.onRequest((request, response) => {
+    
+    // get each team that has been created
+    return new Promise((resolve,reject)=>{
+    admin.firestore().collection("teams").get().then((teams)=>{
+        console.log(teams)
+        let teamsArray = [];
+        this.teamsArray = teams;
+        this.teamsArray.forEach(team => {
+            // if(team.active){
+
+            // create new surveys for each team
+            newsurvey(team);
+ 
+            // create new question
+            // create notifications for each team member
+            // }
+        })
+        response.send("Created new surveys");
+    })
+})
+});
+
+function newsurvey(team){
+    console.log("Ready to create a survey for this team...");
+    console.log(team);
+
+
+    var docData = {
+        active: true,
+        displayName:"Macy's",
+        categories:"Pulse check",
+        surveyType:"pulse",
+        timestamp: admin.firestore.FieldValue.serverTimestamp()
+
+    };
+
+    // create a new survey for the feedback request 
+    admin.firestore().collection("surveys").add(docData)
+    .then(function(docRef) {
+        console.log("Survey Document written with ID: ", docRef.id);
+        const surveyID = docRef.id;  
+        newNotification(team,docRef.id);
+
+        }).catch(function(error) {
+          console.error('Error creating sruvey document: ', error);
+        });
+
+}
+
+
+function newNotification(team, surveyId){
+    console.log("Ready to create a survey for this team...");
+    console.log(team);
+
+
+    // loop through each team member and send a notificastion 
+    team.data().members.forEach(member =>{
+        console.log(member.uid) 
+    // save the data for the noticiation
+        var docData = {
+            active: true,
+            displayName:"Macy's",
+            categories:"Pulse check",
+            type:"pulse",
+            team:team.data().teamName,
+            user:member.uid,
+            survey:surveyId,
+            timestamp: admin.firestore.FieldValue.serverTimestamp()
+        };
+
+            // // create a new survey for the feedback request 
+        admin.firestore().collection("surveynotifications").add(docData)
+        .then(function(docRef) {
+            console.log("Notification Document written with ID: ", docRef.id);
+            const surveyID = docRef.id;  
+            }).catch(function(error) {
+            console.error('Error creating sruvey document: ', error);
+            });
+
+    })
+
+
+
+
+}
+
+
+
+
+
+    
+    //     var docData = {
+    //         active: true,
+    //         userId: userId,
+    //         categories:category,
+    //         surveyType:"feedback",
+    //         arrayExample: teamArray,
+    //         displayName:displayName
+    //     };
+    
+    //     // create a new survey for the feedback request 
+    //     admin.firestore().collection("surveys").add(docData)
+    //     .then(function(docRef) {
+    //         console.log("Document written with ID: ", docRef.id);
+    //         const surveyID = docRef.id;
+    
+    
+    //     // create notificaitons for each category selected 
+    //     // create notifications for each team member selected
+    //     // categories.forEach(category => {
+    //         // console.log("Creating notification for: ", category)
+    //         //make sure the user selected the name 
+    //         // if (category.checked == true){
+    //             // create notifications for each team member selected
+    //             teamArray.forEach(element => {
+    //                 console.log("Creating notification for: ", element)
+    //                 //make sure the user selected the name 
+    //                 if (element.checked == true){
+    //                     // don't send notification for yourself
+    //                     // if(element.userId!=userId){
+    //                     var notificationData = {
+    //                         active: true,
+    //                         user: element.userId,
+    //                         survey: surveyID,
+    //                         name: displayName + " requested feedback on " + category,
+    //                     };
+    //                     admin.firestore().collection("surveynotifications").add(notificationData)
+    //                     .then(function(docRef) {
+    //                         console.log("Notification written with ID: ", docRef.id);
+    //                         const surveyID = docRef.id; 
+    //                         sendNotication(element.userId,"Notification");
+    //                     })
+    //                     .catch(function(error) {
+    //                         console.error("Error adding document: ", error);
+    //                     });
+    //                 // }
+    //             }
+    //             });
+    //     })
+    //     .catch(function(error) {
+    //         console.error("Error adding document: ", error);
+    //     });
+        
+    // })
+
+
+
+   
 
 
 
@@ -264,17 +371,6 @@ exports.createFeedbackRequest = functions.https.onRequest((request, response) =>
                 // }
             }
             });
-    // }
-    // });
-
-
-
-
-
-
-    // pick questions to include in the survey 
-
-
     })
     .catch(function(error) {
         console.error("Error adding document: ", error);
