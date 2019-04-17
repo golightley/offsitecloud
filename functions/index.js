@@ -65,10 +65,10 @@ const sendNotication = (owner_uid, type) => {
     console.log(owner_uid)
     console.log(type)
 
-    return new Promise((resolve,reject)=>{
+    // return new Promise((resolve,reject)=>{
             // get token from users collection 
         admin.firestore().collection("users").doc(owner_uid).get().then((doc)=>{
-            if(doc.exists && doc.data().token){
+            // if(doc.exists && doc.data().token){
                 // will need to add different types
                 // if(type == true){
                     admin.messaging().sendToDevice(doc.data().token, {
@@ -81,18 +81,18 @@ const sendNotication = (owner_uid, type) => {
                         console.log("ready to resolve")
                         console.log(sent)
 
-                        resolve(sent)
+                        // resolve(sent)
                     }).catch((error)=>{
                         console.log("error resolving cloud messaging")
                         console.log(error)
-                        reject(error)
+                        // reject(error)
                     })
                 // }
 
-            }
+            // }
         })
 
-    })
+    // })
 
 
 }
@@ -115,8 +115,13 @@ exports.createPulseChecks = functions.https.onRequest((request, response) => {
             // create new surveys for each team
             newsurvey(team);
             // create new question
+            let teamArray =[];
+            teamArray = team.data().membersids;
 
             // create notifications for each team member
+            teamArray.forEach(uid =>{
+                sendNotication(uid,"Notification")
+            })
             // }
         })
         response.send("Created new surveys");
