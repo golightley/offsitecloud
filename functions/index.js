@@ -103,30 +103,74 @@ exports.helloWorld = functions.https.onRequest((request, response) => {
 
 exports.createPulseChecks = functions.https.onRequest((request, response) => {
     
-    // get each team that has been created
-    return new Promise((resolve,reject)=>{
-    admin.firestore().collection("teams").get().then((teams)=>{
-        console.log(teams)
-        let teamsArray = [];
-        this.teamsArray = teams;
-        this.teamsArray.forEach(team => {
-            // if(team.active){
+    //get team id
+    const teamId  = JSON.parse(request.body).teamId;
+    console.log(request.body)
+    console.log("Team id:"+teamId);
 
-            // create new surveys for each team
-            newsurvey(team);
-            // create new question
-            let teamArray =[];
-            teamArray = team.data().membersids;
+    if(teamId != null){
+        // get each team that has been created
+        return new Promise((resolve,reject)=>{
+            admin.firestore().collection("teams")
+            .doc(teamId)
+            .get()
+            .then((team)=>{
 
-            // create notifications for each team member
-            teamArray.forEach(uid =>{
-                sendNotication(uid,"Notification")
+                    console.log(team)
+                    // console.log(team.membersids)
+                    console.log(team.data())
+                    console.log(team.data().members)
+                    console.log(team.data().memembersids)
+                    console.log(team.data().createdBy)
+                    // create new question
+                    var teamArray = team.data().memembersids;
+                    console.log("Team array")
+                    console.log(teamArray);
+                    // create new surveys for each team
+                    newsurvey(team);
+
+                    // create notifications for each team member
+                    teamArray.forEach(uid =>{
+                        // sendNotication(uid,"Notification")
+                    })
+                    // }
+              
+                response.send("Created new surveys");
             })
-            // }
         })
-        response.send("Created new surveys");
-    })
-})
+    }else{
+        // get each team that has been created
+        return new Promise((resolve,reject)=>{
+            admin.firestore().collection("teams").get().then((teams)=>{
+                console.log(teams)
+                let teamsArray = [];
+                this.teamsArray = teams;
+                this.teamsArray.forEach(team => {
+                    // if(team.active){
+                    // create new surveys for each team
+                    newsurvey(team);
+                    // create new question
+                    let teamArray =[];
+                    teamArray = team.data().membersids;
+        
+                    // create notifications for each team member
+                    teamArray.forEach(uid =>{
+                        sendNotication(uid,"Notification")
+                    })
+                    // }
+                })
+                response.send("Created new surveys");
+            })
+        })
+        
+
+    }
+
+
+    
+
+
+
 });
 
 function newsurvey(team){
@@ -161,18 +205,23 @@ function newNotification(team, surveyId){
     console.log("Ready to create a survey for this team...");
     console.log(team);
 
+    var teamMembers = team.data().members;
 
+    console.log(teamMembers)
     // loop through each team member and send a notificastion 
-    team.data().members.forEach(member =>{
-        console.log(member.uid) 
+
+    for (var member in teamMembers) {
+
+    // teamMembers.forEach(member =>{
+        console.log(member) 
     // save the data for the noticiation
         var docData = {
             active: true,
             displayName:"Macy's",
             categories:"Pulse check",
             type:"pulse",
-            team:team.data().teamName,
-            user:member.uid,
+            // team:team.uid,
+            // user:member.uid,
             survey:surveyId,
             timestamp: admin.firestore.FieldValue.serverTimestamp()
         };
@@ -186,18 +235,25 @@ function newNotification(team, surveyId){
             console.error('Error creating sruvey document: ', error);
             });
 
-    })
+    // })
+}
 }
 
 function newQuestions(team, surveyId){
-
+    console.log("New questions for this team...");
+    console.log(team)
     // create an array of members in the team
     let teamMembersArray = [];
+    var teamMembers = team.data().members;
 
-    team.data().members.forEach(member =>{
+    for (var member in teamMembers) {
         teamMembersArray.push(member);
+    }
 
-    });
+    // team.data().members.forEach(member =>{
+    //     teamMembersArray.push(member);
+
+    // });
     console.log(teamMembersArray);
 
     console.log("Ready to create new questions for this team...");
@@ -221,6 +277,7 @@ function newQuestions(team, surveyId){
                     type: question.type,
                     users:teamMembersArray,
                     surveys:[surveyId],
+                    // teamId:team.uid,
                     goal:"pulse",
                     timestamp: admin.firestore.FieldValue.serverTimestamp()
                 }).then(function(docRef) {
@@ -380,9 +437,9 @@ exports.updateScore = functions.https.onRequest((request, response) => {
     admin.firestore().collection("comments").doc(questId).get().then((data) => {
     
 
-        let score      = data.data().score || 0;
+        let score      = data.data().score            || 0;
         let upvotes    = data.data().upvotes          || [];
-        let downvotes  = data.data().downvotes      || [];
+        let downvotes  = data.data().downvotes        || [];
 
         let updateData = {};
 ;
@@ -408,6 +465,53 @@ exports.updateScore = functions.https.onRequest((request, response) => {
 
 
 })
+
+
+    // update reddit score 
+    exports.updateIdeaScore = functions.https.onRequest((request, response) => {
+        console.log("Update score function");
+    
+        console.log("Body-->");
+    
+        const teamId  = JSON.parse(request.body).team;
+        const userId   = JSON.parse(request.body).userId;
+        const action   = JSON.parse(request.body).action;
+    
+        console.log(request.body);
+        console.log(userId);
+        console.log(action);
+    
+        admin.firestore().collection("ideas").doc(teamId).get().then((data) => {
+        
+    
+            let score      = data.data().score            || 0;
+            let upvotes    = data.data().upvotes          || [];
+            let downvotes  = data.data().downvotes        || [];
+    
+            let updateData = {};
+    ;
+    
+            if(action =="upvote"){
+                updateData["score"] = ++score;
+                updateData[`upvotes.${userId}`] = true;
+    
+            }else{
+                updateData["score"] = --score;
+                updateData[`downvotes.${userId}`] = false;
+            }
+    
+            admin.firestore().collection("ideas").doc(teamId).update(updateData).then(()=>{
+                response.status(200).send("Done")
+            }).catch((err)=>{
+                response.status(err.code).send(err.message);
+            })
+    
+        }).catch((err)=>{
+            response.status(err.code).send(err.message);
+        })
+    
+    
+    })
 
 
 // Take the text parameter passed to this HTTP endpoint and insert it into the
