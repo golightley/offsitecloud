@@ -128,6 +128,8 @@ exports.createPulseChecks = functions.https.onRequest((request, response) => {
                     console.log(teamArray);
                     // create new surveys for each team
                     newsurvey(team);
+                    initialNotifications(team);
+
 
                     // create notifications for each team member
                     teamArray.forEach(uid =>{
@@ -149,6 +151,9 @@ exports.createPulseChecks = functions.https.onRequest((request, response) => {
                     // if(team.active){
                     // create new surveys for each team
                     newsurvey(team);
+                    //initial norificaitons 
+                    initialNotifications(team);
+
                     // create new question
                     let teamArray =[];
                     teamArray = team.data().membersids;
@@ -180,7 +185,7 @@ function newsurvey(team){
 
     var docData = {
         active: true,
-        displayName:"Macy's",
+        displayName:team.data().teamName,
         categories:"Pulse check",
         surveyType:"pulse",
         timestamp: admin.firestore.FieldValue.serverTimestamp()
@@ -205,7 +210,7 @@ function newNotification(team, surveyId){
     console.log("Ready to create a survey for this team...");
     console.log(team);
 
-    var teamMembers = team.data().members;
+    var teamMembers = team.data().memembersids;
 
     console.log(teamMembers)
     // loop through each team member and send a notificastion 
@@ -213,15 +218,15 @@ function newNotification(team, surveyId){
     for (var member in teamMembers) {
 
     // teamMembers.forEach(member =>{
-        console.log(member) 
+        console.log("Member:"+member) 
     // save the data for the noticiation
         var docData = {
             active: true,
-            displayName:"Macy's",
+            displayName:team.data().teamName,
             categories:"Pulse check",
             type:"pulse",
             // team:team.uid,
-            // user:member.uid,
+            user:teamMembers[member],
             survey:surveyId,
             timestamp: admin.firestore.FieldValue.serverTimestamp()
         };
@@ -234,6 +239,62 @@ function newNotification(team, surveyId){
             }).catch(function(error) {
             console.error('Error creating sruvey document: ', error);
             });
+
+
+
+    // })
+    }
+}
+
+function initialNotifications(team){
+
+    var teamMembers = team.data().memembersids;
+
+    for (var member in teamMembers) {
+
+        // save the data for the noticiation
+            var docData = {
+                active: true,
+                message:"Ask team for anonymous feedback",
+                type:"feedback-ask",
+                // team:team.uid,
+                user:teamMembers[member],
+                link:'/app/feedback',
+                timestamp: admin.firestore.FieldValue.serverTimestamp()
+            };
+
+        // // create a new survey for the feedback request 
+            admin.firestore()
+            .collection("surveynotifications")
+            .add(docData)
+            .then(function(docRef) {
+                const surveyID = docRef.id;  
+                }).catch(function(error) {
+                console.error('Error creating sruvey document: ', error);
+                });
+
+                // save the data for the noticiation
+                var docData = {
+                    active: true,
+                    message:"Suggest an idea to your team",
+                    type:"instructional",
+                    // team:team.uid,
+                    user:teamMembers[member],
+                    link:'/app/ideas',
+                    timestamp: admin.firestore.FieldValue.serverTimestamp()
+                };
+    
+                    // // create a new survey for the feedback request 
+                admin.firestore()
+                .collection("surveynotifications")
+                .add(docData)
+                .then(function(docRef) {
+                    const surveyID = docRef.id;  
+                    }).catch(function(error) {
+                    console.error('Error creating sruvey document: ', error);
+                    });
+
+            
 
     // })
 }
@@ -277,9 +338,11 @@ function newQuestions(team, surveyId){
                     type: question.type,
                     users:teamMembersArray,
                     surveys:[surveyId],
-                    // teamId:team.uid,
+                    teamId:team.id,
                     goal:"pulse",
+                    timestamp: admin.firestore.FieldValue.serverTimestamp(),
                     timestamp: admin.firestore.FieldValue.serverTimestamp()
+
                 }).then(function(docRef) {
                     console.log('Survey question written with ID: ', docRef.id);
                   }).catch(function(error) {
