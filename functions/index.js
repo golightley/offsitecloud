@@ -65,48 +65,6 @@ exports.firestoreEmail = functions.https.onRequest((request, response) => {
 
 });
 
-/*exports.firestoreEmail = functions.firestore
-    .document('emailInvites/{emailInvitesId}')
-    .onCreate((snap, context) => {
-        // Get an object representing the document
-        // e.g. {'name': 'Marie', 'age': 66}
-        const newValue = snap.data();
-  
-        // access a particular field as you would any JS property
-        const name      =  newValue.name;
-        const email     =  newValue.email;
-        const team      =  newValue.team;
-        const teamName  =  newValue.teamName;
-        const teamID    =  newValue.teamId;
-
-        console.log("sending to "+name+ " at "+email + "with id"+snap.id)
-
-        const msg = {
-            to: email,
-            from: 'test@offsite.com',
-            subject: 'You have been invited by a co-worker to join Offsite',
-            // text: 'and easy to do anywhere, even with Node.js',
-            // html: '<strong>and easy to do anywhere, even with Node.js</strong>',
-            templateId: 'd-5bcdc869970a4a269fb044c40341edac',
-            dynamic_template_data: {
-                name: newValue.name,
-                subject:'You have been invited by a co-worker to join Offsite',
-                // team:[{"name":"liam"},{"name":"cynthia"}]
-                team:newValue.team,
-                teamName:teamName,
-                teamId:teamID, 
-                // and other custom properties here
-                }
-          };
-          
-         // send data to send grid
-         return sgMail.send(msg)
-                .then(() => console.log(' mail sent success'))
-                .catch(err => console.log(err))
-                console.log("Email sent")
-      });
-
-*/
 const sendNotication = (owner_uid, type) => {
 
     // print out the info to make sure it is right 
@@ -155,10 +113,12 @@ exports.createPulseChecks = functions.https.onRequest((request, response) => {
 
     //get team id
     const teamId = JSON.parse(request.body).teamId;
+    const userId = JSON.parse(request.body).userId;
+    const isTeamCreate = JSON.parse(request.body).isTeamCreate; // if create team then 'create', if join team then 'join'
     console.log(request.body)
     console.log("Team id:" + teamId);
 
-    if (teamId != null) {
+    if (teamId != null && userId != null) {
         // get each team that has been created
         return new Promise((resolve, reject) => {
             admin.firestore().collection("teams")
@@ -167,26 +127,14 @@ exports.createPulseChecks = functions.https.onRequest((request, response) => {
                 .then((team) => {
 
                     console.log(team)
-                    // console.log(team.membersids)
                     console.log(team.data())
                     console.log(team.data().members)
                     console.log(team.data().memembersids)
                     console.log(team.data().createdBy)
-                    // create new question
-                    var teamArray = team.data().memembersids;
-                    console.log("Team array")
-                    console.log(teamArray);
-                    // create new surveys for each team
-                    newsurvey(team);
-                    initialNotifications(team);
-
-
-                    // create notifications for each team member
-                    teamArray.forEach(uid => {
-                        // sendNotication(uid,"Notification")
-                    })
-                    // }
-
+                    
+                    // create new surveys for current user
+                    newSurvey(team, userId, isTeamCreate);
+                    initialNotifications(team, userId);
                     response.send("Created new surveys");
                 })
         })
@@ -200,9 +148,9 @@ exports.createPulseChecks = functions.https.onRequest((request, response) => {
                 this.teamsArray.forEach(team => {
                     // if(team.active){
                     // create new surveys for each team
-                    newsurvey(team);
+                    newSurvey(team, userId, isTeamCreate);
                     //initial norificaitons 
-                    initialNotifications(team);
+                    initialNotifications(team, userId);
 
                     // create new question
                     let teamArray = [];
@@ -228,126 +176,116 @@ exports.createPulseChecks = functions.https.onRequest((request, response) => {
 
 });
 
-function newsurvey(team) {
+function newSurvey(team, userId, isTeamCreate) {
     console.log("Ready to create a survey for this team...");
     console.log(team);
-
-
-    var docData = {
-        active: true,
-        displayName: team.data().teamName,
-        categories: "Pulse check",
-        surveyType: "pulse",
-        timestamp: admin.firestore.FieldValue.serverTimestamp()
-
-    };
-
-    // create a new survey for the feedback request 
-    admin.firestore().collection("surveys").add(docData)
-        .then(function (docRef) {
-            console.log("Survey Document written with ID: ", docRef.id);
-            const surveyID = docRef.id;
-            newNotification(team, docRef.id);
-            newQuestions(team, docRef.id)
-        }).catch(function (error) {
-            console.error('Error creating sruvey document: ', error);
-        });
-
-}
-
-
-function newNotification(team, surveyId) {
-    console.log("Ready to create a survey for this team...");
-    console.log(team);
-
-    var teamMembers = team.data().memembersids;
-
-    console.log(teamMembers)
-    // loop through each team member and send a notificastion 
-
-    for (var member in teamMembers) {
-
-        // teamMembers.forEach(member =>{
-        console.log("Member:" + member)
-        // save the data for the noticiation
+    if( isTeamCreate == 'create' ){
         var docData = {
             active: true,
             displayName: team.data().teamName,
             categories: "Pulse check",
-            type: "pulse",
-            // team:team.uid,
-            user: teamMembers[member],
-            survey: surveyId,
+            surveyType: "pulse",
+            teamId: team.id,
             timestamp: admin.firestore.FieldValue.serverTimestamp()
+    
         };
-
-        // // create a new survey for the feedback request 
-        admin.firestore().collection("surveynotifications").add(docData)
+        // create a new survey for the feedback request 
+        admin.firestore().collection("surveys").add(docData)
             .then(function (docRef) {
-                console.log("Notification Document written with ID: ", docRef.id);
+                console.log("Survey Document written with ID: ", docRef.id);
                 const surveyID = docRef.id;
+                newNotification(team, surveyID, userId);
+                // newQuestions(team, surveyID)
             }).catch(function (error) {
                 console.error('Error creating sruvey document: ', error);
             });
-
-
-
-        // })
+    } else if( isTeamCreate == 'join' ) {
+        admin.firestore().collection("surveys")
+            .doc(team.id)
+            .get()
+            .then((survey) => {
+                newNotification(team, survey.id, userId);
+            });
     }
+    
 }
 
-function initialNotifications(team) {
 
-    var teamMembers = team.data().memembersids;
+function newNotification(team, surveyId, userId) {
+    console.log("Ready to create a survey of current user for this team...");
+    console.log(team);
 
-    for (var member in teamMembers) {
+    // var teamMembers = team.data().memembersids;    
+    // loop through each team member and send a notificastion 
 
-        // save the data for the noticiation
-        var docData = {
-            active: true,
-            message: "Ask team for anonymous feedback",
-            type: "feedback-ask",
-            // team:team.uid,
-            user: teamMembers[member],
-            link: '/app/feedback',
-            timestamp: admin.firestore.FieldValue.serverTimestamp()
-        };
+    // save the data for the noticiation
+    var docData = {
+        active: true,
+        displayName: team.data().teamName,
+        categories: "Pulse check",
+        type: "pulse",
+        teamId: team.id,
+        user: userId,
+        survey: surveyId,
+        timestamp: admin.firestore.FieldValue.serverTimestamp()
+    };
 
-        // // create a new survey for the feedback request 
-        admin.firestore()
-            .collection("surveynotifications")
-            .add(docData)
-            .then(function (docRef) {
-                const surveyID = docRef.id;
-            }).catch(function (error) {
-                console.error('Error creating sruvey document: ', error);
-            });
+    // create a new survey for the feedback request 
+    admin.firestore().collection("surveynotifications").add(docData)
+        .then(function (docRef) {
+            console.log("Notification Document written with ID: ", docRef.id);
+            const surveyID = docRef.id;
+        }).catch(function (error) {
+            console.error('Error creating sruvey document: ', error);
+        });
+    
+}
 
-        // save the data for the noticiation
-        var docData = {
-            active: true,
-            message: "Suggest an idea to your team",
-            type: "instructional",
-            // team:team.uid,
-            user: teamMembers[member],
-            link: '/app/ideas',
-            timestamp: admin.firestore.FieldValue.serverTimestamp()
-        };
+function initialNotifications(team, userId) {
 
-        // // create a new survey for the feedback request 
-        admin.firestore()
-            .collection("surveynotifications")
-            .add(docData)
-            .then(function (docRef) {
-                const surveyID = docRef.id;
-            }).catch(function (error) {
-                console.error('Error creating sruvey document: ', error);
-            });
+    // var teamMembers = team.data().memembersids;
+    // save the data for the noticiation
+    var docData = {
+        active: true,
+        message: "Ask team for anonymous feedback",
+        type: "feedback-ask",
+        teamId: team.id,
+        user: userId,
+        link: '/app/feedback',
+        timestamp: admin.firestore.FieldValue.serverTimestamp()
+    };
 
+    // create a new survey for the feedback request 
+    admin.firestore()
+        .collection("surveynotifications")
+        .add(docData)
+        .then(function (docRef) {
+            const surveyID = docRef.id;
+        }).catch(function (error) {
+            console.error('Error creating sruvey document: ', error);
+        });
 
+    // save the data for the noticiation
+    var docData = {
+        active: true,
+        message: "Suggest an idea to your team",
+        type: "instructional",
+        teamId: team.id,
+        user: userId,
+        link: '/app/ideas',
+        timestamp: admin.firestore.FieldValue.serverTimestamp()
+    };
 
-        // })
-    }
+    // // create a new survey for the feedback request 
+    admin.firestore()
+        .collection("surveynotifications")
+        .add(docData)
+        .then(function (docRef) {
+            const surveyID = docRef.id;
+        }).catch(function (error) {
+            console.error('Error creating sruvey document: ', error);
+        });
+
 }
 
 function newQuestions(team, surveyId) {
