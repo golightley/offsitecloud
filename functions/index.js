@@ -195,7 +195,7 @@ function newSurvey(team, userId, isTeamCreate) {
                 console.log("Survey Document written with ID: ", docRef.id);
                 const surveyID = docRef.id;
                 newNotification(team, surveyID, userId);
-                // newQuestions(team, surveyID)
+                newQuestions(team, surveyID, userId)
             }).catch(function (error) {
                 console.error('Error creating sruvey document: ', error);
             });
@@ -205,6 +205,7 @@ function newSurvey(team, userId, isTeamCreate) {
             .get()
             .then((survey) => {
                 newNotification(team, survey.id, userId);
+                newQuestions(team, surveyID, userId)
             });
     }
     
@@ -288,25 +289,19 @@ function initialNotifications(team, userId) {
 
 }
 
-function newQuestions(team, surveyId) {
+function newQuestions(team, surveyId, userId) {
     console.log("New questions for this team...");
-    console.log(team)
+    
     // create an array of members in the team
-    let teamMembersArray = [];
+    /*let teamMembersArray = [];
     var teamMembers = team.data().members;
-
     for (var member in teamMembers) {
         teamMembersArray.push(member);
     }
+    console.log(teamMembersArray);*/
 
-    // team.data().members.forEach(member =>{
-    //     teamMembersArray.push(member);
-
-    // });
-    console.log(teamMembersArray);
-
-    console.log("Ready to create new questions for this team...");
-    // // create a new survey for the feedback request 
+    console.log("Ready to create new questions for user...");
+    // create a new survey for the feedback request 
     admin.firestore().collection('questionTemplate').where('category', '==', "Pulse check").get()
         .then(function (questionTemplate) {
             questionTemplate.forEach((templates) => {
@@ -324,11 +319,10 @@ function newQuestions(team, surveyId) {
                         active: true,
                         Question: questionText,
                         type: question.type,
-                        users: teamMembersArray,
+                        user: userId,
                         surveys: [surveyId],
                         teamId: team.id,
                         goal: "pulse",
-                        timestamp: admin.firestore.FieldValue.serverTimestamp(),
                         timestamp: admin.firestore.FieldValue.serverTimestamp()
 
                     }).then(function (docRef) {
