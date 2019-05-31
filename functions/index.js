@@ -206,7 +206,7 @@ function newSurvey(team, userId, isTeamCreate) {
             .get()
             .then((survey) => {
                 newNotification(team, survey.id, userId);
-                newQuestions(team, surveyID, userId)
+                newQuestions(team, survey.id, userId)
             });
     }
     
