@@ -133,8 +133,9 @@ exports.createPulseChecks = functions.https.onRequest((request, response) => {
                     console.log(team.data().createdBy)
                     
                     // create new surveys for current user
-                    newSurvey(team, userId, isTeamCreate);
-                    initialNotifications(team, userId);
+                    newSurvey(team, userId, isTeamCreate);   
+                    console.log("generate initial notification for current user");
+                    initialNotifications(team, userId);                 
                     response.send("Created new surveys");
                 })
         })
@@ -221,7 +222,7 @@ function newNotification(team, surveyId, userId) {
 
     // save the data for the noticiation
     var docData = {
-        active: true,
+        active: false,
         displayName: team.data().teamName,
         categories: "Pulse check",
         type: "pulse",
@@ -235,7 +236,7 @@ function newNotification(team, surveyId, userId) {
     admin.firestore().collection("surveynotifications").add(docData)
         .then(function (docRef) {
             console.log("Notification Document written with ID: ", docRef.id);
-            const surveyID = docRef.id;
+            const surveyID = docRef.id;            
         }).catch(function (error) {
             console.error('Error creating sruvey document: ', error);
         });
