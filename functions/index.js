@@ -382,6 +382,7 @@ function newQuestions(team, surveyId, userId) {
                         active: true,
                         Question: questionText,
                         type: question.type,
+                        category:question.category,
                         user: userId,
                         surveys: [surveyId],
                         teamId: team.id,
