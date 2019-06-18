@@ -72,11 +72,11 @@ exports.mySendNotification = functions.firestore
                                 console.log(error)
                                 // reject(error)
                             })
-                        });
-                    }
-                })
-            }
-        })
+                    });
+                }
+            })
+        }
+    })
 // send invite email with sendgrid 
 exports.firestoreEmail = functions.https.onRequest((request, response) => {
     const email = JSON.parse(request.body).email;
@@ -268,7 +268,7 @@ function newSurvey(team, userId, isTeamCreate) {
             .get()
             .then((survey) => {
                 newNotification(team, survey.id, userId);
-                newQuestions(team, survey.id, userId)
+                // newQuestions(team, survey.id, userId)
             });
     }
     
