@@ -72,11 +72,12 @@ exports.mySendNotification = functions.firestore
                                 console.log(error)
                                 // reject(error)
                             })
-                    });
+                    })
                 }
             })
         }
     })
+})
 // send invite email with sendgrid 
 exports.firestoreEmail = functions.https.onRequest((request, response) => {
     const email = JSON.parse(request.body).email;
