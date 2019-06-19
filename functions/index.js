@@ -14,70 +14,70 @@ sgMail.setApiKey(SENDGRID_API_KEY);
 // // https://firebase.google.com/docs/functions/write-firebase-functions
 //
 
-exports.mySendNotification = functions.firestore
-    .document('surveynotifications/{user}')
-    .onUpdate(event => {
-        admin.firestore().collection('surveynotifications')
-            .where('user', '==', user)
-            .where('active', '==', true).get()
-            .then((docs) => {
-                docs.forEach((notification) => {
-                    admin.firestore().collection("users").doc(user).get().then((doc)=>{
-                    admin.messaging().sendToDevice(doc.data().token, {
-                            data:{
-                                title: notification.data().category,
-                                sound: "default",
-                                body:"Tap to check"
-                            }
-                            }).then((sent)=>{
-                                console.log("ready to resolve")
-                                console.log(sent)
+// exports.mySendNotification = functions.firestore
+//     .document('surveynotifications/{user}')
+//     .onUpdate(event => {
+//         admin.firestore().collection('surveynotifications')
+//             .where('user', '==', user)
+//             .where('active', '==', true).get()
+//             .then((docs) => {
+//                 docs.forEach((notification) => {
+//                     admin.firestore().collection("users").doc(user).get().then((doc)=>{
+//                     admin.messaging().sendToDevice(doc.data().token, {
+//                             data:{
+//                                 title: notification.data().category,
+//                                 sound: "default",
+//                                 body:"Tap to check"
+//                             }
+//                             }).then((sent)=>{
+//                                 console.log("ready to resolve")
+//                                 console.log(sent)
 
-                                // resolve(sent)
-                            }).catch((error)=>{
-                                console.log("error resolving cloud messaging")
-                                console.log(error)
-                                // reject(error)
-                            })
-                    });
-                });
-            })
+//                                 // resolve(sent)
+//                             }).catch((error)=>{
+//                                 console.log("error resolving cloud messaging")
+//                                 console.log(error)
+//                                 // reject(error)
+//                             })
+//                     });
+//                 });
+//             })
         
-    })
+//     })
 
-    exports.mySendIdeaNotification = functions.firestore
-    .document('ideas/{teamId}')
-    .onUpdate(event => {
-        admin.firestore().collection('teams').doc(teamId).get().then(doc => {
-            const dicTeam = doc.data();
-            if (dicTeam.hasOwnProperty('members')) {
-                const members = dicTeam['members'];
-                members.forEach( dicMember => {
-                    if (dicMember.hasOwnProperty('uid')) {
-                        const memberId = dicMember['uid'];
-                        admin.firestore().collection("users").doc(memberId).get().then((doc)=>{
-                        admin.messaging().sendToDevice(doc.data().token, {
-                            data:{
-                                title: "Idea notification",
-                                sound: "default",
-                                body:"Tap to check"
-                            }
-                            }).then((sent)=>{
-                                console.log("ready to resolve")
-                                console.log(sent)
+//     exports.mySendIdeaNotification = functions.firestore
+//     .document('ideas/{teamId}')
+//     .onUpdate(event => {
+//         admin.firestore().collection('teams').doc(teamId).get().then(doc => {
+//             const dicTeam = doc.data();
+//             if (dicTeam.hasOwnProperty('members')) {
+//                 const members = dicTeam['members'];
+//                 members.forEach( dicMember => {
+//                     if (dicMember.hasOwnProperty('uid')) {
+//                         const memberId = dicMember['uid'];
+//                         admin.firestore().collection("users").doc(memberId).get().then((doc)=>{
+//                         admin.messaging().sendToDevice(doc.data().token, {
+//                             data:{
+//                                 title: "Idea notification",
+//                                 sound: "default",
+//                                 body:"Tap to check"
+//                             }
+//                             }).then((sent)=>{
+//                                 console.log("ready to resolve")
+//                                 console.log(sent)
 
-                                // resolve(sent)
-                            }).catch((error)=>{
-                                console.log("error resolving cloud messaging")
-                                console.log(error)
-                                // reject(error)
-                            })
-                    })
-                }
-            })
-        }
-    })
-})
+//                                 // resolve(sent)
+//                             }).catch((error)=>{
+//                                 console.log("error resolving cloud messaging")
+//                                 console.log(error)
+//                                 // reject(error)
+//                             })
+//                     })
+//                 }
+//             })
+//         }
+//     })
+// })
 // send invite email with sendgrid 
 exports.firestoreEmail = functions.https.onRequest((request, response) => {
     const email = JSON.parse(request.body).email;
@@ -264,13 +264,33 @@ function newSurvey(team, userId, isTeamCreate) {
                 console.error('Error creating sruvey document: ', error);
             });
     } else if( isTeamCreate == 'join' ) {
-        admin.firestore().collection("surveys")
-            .doc(team.id)
-            .get()
-            .then((survey) => {
-                newNotification(team, survey.id, userId);
-                // newQuestions(team, survey.id, userId)
-            });
+        const docRef = admin.firestore().collection('surveys')
+            .where('teamId', '==', team.id);
+            //.where('category', '==', 'Pulse check');
+        docRef.get().then(async function (ref) {
+            console.log('count = ' + ref.size);
+            if (ref.size === 0) {
+              console.log('[newSurvey] survey not found!');
+            } else {
+              const suvey_id = ref.docs[0].id;
+              const team_id = ref.docs[0].data().teamId;
+              const team_name = ref.docs[0].data().displayName;
+              
+              console.log('[newSurvey] found survey >> team = ' + team_name);
+              console.log('[newSurvey] found survey >> teamId = ' + team_id);
+              console.log('[newSurvey] found survey >> survey = ' + suvey_id);
+
+              newNotification(team, suvey_id, userId);
+
+            }
+        })
+        // .where('teamId', '==', team.id)
+        //     .get()
+        //     .then((survey) => {
+        //         newNotification(team, survey.id, userId);
+        //         console.log('!!!!!!!!!! [CreatePulseNotification] In join, team = >> ' + survey.displayName + ' survey = ' + survey.id);
+        //         // newQuestions(team, survey.id, userId)
+        //     });
     }
     
 }
