@@ -77,6 +77,8 @@ exports.mySendNotification = functions.firestore
                 })
             }
         })
+
+    })
 // send invite email with sendgrid 
 exports.firestoreEmail = functions.https.onRequest((request, response) => {
     const email = JSON.parse(request.body).email;
@@ -755,6 +757,5 @@ exports.addQuestionToSurvey = functions.firestore
         //     return false;
         // }
 
-    });
 
 });
