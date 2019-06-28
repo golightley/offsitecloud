@@ -233,11 +233,6 @@ exports.createPulseChecks = functions.https.onRequest((request, response) => {
 
     }
 
-
-
-
-
-
 });
 
 function newSurvey(team, userId, isTeamCreate) {
@@ -258,7 +253,6 @@ function newSurvey(team, userId, isTeamCreate) {
             .then(function (docRef) {
                 console.log("Survey Document written with ID: ", docRef.id);
                 const surveyID = docRef.id;
-                newNotification(team, surveyID, userId);
                 newQuestions(team, surveyID, userId)
             }).catch(function (error) {
                 console.error('Error creating sruvey document: ', error);
@@ -284,13 +278,6 @@ function newSurvey(team, userId, isTeamCreate) {
 
             }
         })
-        // .where('teamId', '==', team.id)
-        //     .get()
-        //     .then((survey) => {
-        //         newNotification(team, survey.id, userId);
-        //         console.log('!!!!!!!!!! [CreatePulseNotification] In join, team = >> ' + survey.displayName + ' survey = ' + survey.id);
-        //         // newQuestions(team, survey.id, userId)
-        //     });
     }
     
 }
@@ -376,14 +363,6 @@ function initialNotifications(team, userId) {
 function newQuestions(team, surveyId, userId) {
     console.log("New questions for this team...");
     
-    // create an array of members in the team
-    /*let teamMembersArray = [];
-    var teamMembers = team.data().members;
-    for (var member in teamMembers) {
-        teamMembersArray.push(member);
-    }
-    console.log(teamMembersArray);*/
-
     console.log("Ready to create new questions for user...");
     // create a new survey for the feedback request 
     admin.firestore().collection('questionTemplate').where('category', '==', "Pulse check").get()
@@ -412,6 +391,8 @@ function newQuestions(team, surveyId, userId) {
 
                     }).then(function (docRef) {
                         console.log('Survey question written with ID: ', docRef.id);
+                        console.log('call newNotification');
+                        newNotification(team, surveyID, userId);
                     }).catch(function (error) {
                         console.error('Error adding document: ', error);
                     });
@@ -433,9 +414,6 @@ exports.updateLikesCount = functions.https.onRequest((request, response) => {
     const action = JSON.parse(request.body).action;
 
     console.log(request.body);
-    // const questId  = request.body.questId;
-    // const userId   = request.body.userId;
-    // const action   = request.body.action;
 
     console.log(questId);
     console.log(userId);
